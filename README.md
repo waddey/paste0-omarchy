@@ -11,7 +11,7 @@ Plugins run as unsandboxed code inside the long-lived `omarchy-shell` process. R
 ## Install
 
 ```sh
-omarchy plugin add https://github.com/YOURNAME/paste0-omarchy.git --enable
+omarchy plugin add https://github.com/waddey/paste0-omarchy.git --enable
 ```
 
 Or drop the folder in by hand:
