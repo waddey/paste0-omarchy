@@ -4,22 +4,12 @@ A bar widget that pastes the clipboard to [paste0.com](https://paste0.com) and c
 
 Left click opens a small panel. Middle click creates immediately. Right click copies the last URL. Pastes are always unlisted.
 
-This folder is the plugin. `omarchy plugin add` expects a git repo with `manifest.json` at the root — publish this directory as its own repository, not the paste0.com website tree.
-
 Plugins run as unsandboxed code inside the long-lived `omarchy-shell` process. Read the files before you enable them. See the [Omarchy shell plugins](https://github.com/omacom/omarchy/blob/quattro/manual/32-shell-plugins.md) manual.
 
 ## Install
 
 ```sh
 omarchy plugin add https://github.com/waddey/paste0-omarchy.git --enable
-```
-
-Or drop the folder in by hand:
-
-```sh
-cp -r omarchy-plugin ~/.config/omarchy/plugins/com.paste0.paste
-omarchy-shell shell rescanPlugins
-omarchy plugin enable com.paste0.paste
 ```
 
 Needs `python3`, `wl-paste`, and `wl-copy`. No pip, no Node, no extra daemon.
