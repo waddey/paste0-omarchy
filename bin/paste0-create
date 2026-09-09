@@ -12,6 +12,9 @@ import urllib.request
 from urllib.parse import urlparse
 
 MAX_BYTES = 2 * 1024 * 1024
+# Create responses are a tiny JSON object ({ok,id,url,raw} or {ok,message}).
+# Cap + one byte so a hostile apiUrl cannot fill RAM or flood StdioCollector.
+MAX_RESPONSE_BYTES = 8 * 1024
 DEFAULT_API = "https://paste0.com/api"
 ALLOWED_EXPIRY = {"10min", "1hour", "1day", "1week", "1month"}
 
@@ -20,6 +23,13 @@ def fail(message: str, code: int = 1) -> None:
     json.dump({"ok": False, "message": message}, sys.stdout, ensure_ascii=False)
     sys.stdout.write("\n")
     raise SystemExit(code)
+
+
+def read_capped(stream) -> bytes:
+    data = stream.read(MAX_RESPONSE_BYTES + 1)
+    if len(data) > MAX_RESPONSE_BYTES:
+        fail("Response too large")
+    return data
 
 
 def api_url(raw: str) -> str:
@@ -68,9 +78,12 @@ def main() -> None:
     )
     try:
         with urllib.request.urlopen(req, timeout=20) as response:
-            raw = response.read()
+            raw = read_capped(response)
     except urllib.error.HTTPError as err:
-        raw = err.read()
+        try:
+            raw = read_capped(err)
+        finally:
+            err.close()
         if not raw:
             fail(str(err.reason or "Request failed"))
     except Exception as err:
