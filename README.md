@@ -22,12 +22,11 @@ omarchy plugin validate ~/.config/omarchy/plugins/com.paste0.paste
 
 ## Usage
 
-- Click **paste0** to preview the clipboard, pick expiry / burn, then Create
+- Click **paste0** to preview the clipboard, pick expiry, then Create
 - Middle-click the pill to create from the clipboard without extra clicks
 - Right-click copies the last URL
 - Escape closes the panel
-- `1`–`5` set expiry (10m, 1h, 1d, 1w, 1mo); `b` toggles burn after read; Enter creates; `y` copies the URL
-- After create, tap **+** (bottom right) to reveal delete / edit codes when the API returns them; tap a code to copy; `+` / `=` toggles
+- `1`–`5` set expiry (10m, 1h, 1d, 1w, 1mo); Enter creates; `y` copies the URL
 
 Summon from the shell:
 
@@ -51,14 +50,13 @@ Settings live inline on the bar layout entry in `~/.config/omarchy/shell.json`:
   "id": "com.paste0.paste",
   "apiUrl": "https://paste0.com/api",
   "expiry": "1week",
-  "burn": false,
   "copyUrl": true
 }
 ```
 
-Expiry values: `10min`, `1hour`, `1day`, `1week`, `1month`. Set `burn` to `true` for burn-after-read by default.
+Expiry values: `10min`, `1hour`, `1day`, `1week`, `1month`.
 
-The helper POSTs JSON to `/api` with `X-Paste0-Client: omarchy`. It never uses `/api/paste` (that path is CSRF-gated). Optional field `b` enables burn after read. Successful creates may include `delete_code` and `edit_code`.
+The helper POSTs JSON to `/api` with `X-Paste0-Client: omarchy`. It never uses `/api/paste` (that path is CSRF-gated).
 
 ## Remove
 
