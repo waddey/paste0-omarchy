@@ -12,7 +12,7 @@ import urllib.request
 from urllib.parse import urlparse
 
 MAX_BYTES = 2 * 1024 * 1024
-# Create responses are a tiny JSON object ({ok,id,url,raw,...} or {ok,message}).
+# Create responses are a tiny JSON object ({ok,id,url,raw} or {ok,message}).
 # Cap + one byte so a hostile apiUrl cannot fill RAM or flood StdioCollector.
 MAX_RESPONSE_BYTES = 8 * 1024
 DEFAULT_API = "https://paste0.com/api"
@@ -44,16 +44,11 @@ def api_url(raw: str) -> str:
     return value
 
 
-def truthy(raw: str) -> bool:
-    return str(raw or "").strip().lower() in {"1", "true", "yes", "on", "burn"}
-
-
 def main() -> None:
     api = api_url(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_API)
     expiry = sys.argv[2] if len(sys.argv) > 2 else "1week"
     title = sys.argv[3] if len(sys.argv) > 3 else ""
     syntax = sys.argv[4] if len(sys.argv) > 4 else "auto"
-    burn = truthy(sys.argv[5]) if len(sys.argv) > 5 else False
     if expiry not in ALLOWED_EXPIRY:
         expiry = "1week"
     if syntax == "":
@@ -66,17 +61,13 @@ def main() -> None:
     if not text.strip():
         fail("Empty paste")
 
-    payload = {
-        "c": text,
-        "title": title,
-        "syntax": syntax,
-        "e": expiry,
-    }
-    if burn:
-        payload["b"] = True
+    payload = json.dumps(
+        {"c": text, "title": title, "syntax": syntax, "e": expiry},
+        ensure_ascii=False,
+    ).encode("utf-8")
     req = urllib.request.Request(
         api,
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        data=payload,
         method="POST",
         headers={
             "Content-Type": "application/json",
