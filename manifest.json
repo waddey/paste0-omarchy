@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "id": "com.paste0.paste",
   "name": "paste0",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "paste0",
   "license": "MIT",
   "homepage": "https://paste0.com",
-  "description": "Paste the clipboard to paste0.com from the Omarchy bar. Unlisted, one click, URL copied back.",
+  "description": "Paste the clipboard to paste0.com from the Omarchy bar. Unlisted, optional burn, delete/edit codes, URL copied back.",
   "kinds": ["bar-widget"],
   "entryPoints": {
     "barWidget": "BarWidget.qml"
@@ -20,11 +20,13 @@
     "defaults": {
       "apiUrl": "https://paste0.com/api",
       "expiry": "1week",
+      "burn": false,
       "copyUrl": true
     },
     "schema": [
       { "key": "apiUrl", "type": "string", "label": "API URL" },
       { "key": "expiry", "type": "string", "label": "Expiry" },
+      { "key": "burn", "type": "boolean", "label": "Burn after read" },
       { "key": "copyUrl", "type": "boolean", "label": "Copy URL after create" }
     ]
   }
