@@ -75,6 +75,12 @@ function meta(text) {
   return size + " · " + lines + (lines === 1 ? " line" : " lines")
 }
 
+function cleanCode(value) {
+  var s = String(value === undefined || value === null ? "" : value)
+  s = s.replace(/[^A-Za-z0-9_-]/g, "")
+  return s.length > 64 ? s.slice(0, 64) : s
+}
+
 function parseCreate(raw) {
   var data
   try {
@@ -92,7 +98,9 @@ function parseCreate(raw) {
       ok: true,
       id: clean(data.id, 32),
       url: url,
-      raw: cleanUrl(data.raw)
+      raw: cleanUrl(data.raw),
+      deleteCode: cleanCode(data.delete_code || data.deleteCode),
+      editCode: cleanCode(data.edit_code || data.editCode)
     }
   }
   return {
@@ -105,6 +113,7 @@ if (typeof module !== "undefined") {
   module.exports = {
     clean: clean,
     cleanUrl: cleanUrl,
+    cleanCode: cleanCode,
     normalizeApiUrl: normalizeApiUrl,
     expiryOptions: expiryOptions,
     normalizeExpiry: normalizeExpiry,

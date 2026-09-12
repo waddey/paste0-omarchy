@@ -26,9 +26,15 @@ Panel {
   property bool creating: false
   property string pendingBody: ""
   property string expiry: Model.normalizeExpiry(setting("expiry", "1week"))
+  property bool burn: Model.boolish(setting("burn", false), false)
   property string lastUrl: ""
+  property string lastDeleteCode: ""
+  property string lastEditCode: ""
+  property bool codesOpen: false
   property string statusText: ""
   property bool isAlert: false
+
+  readonly property bool hasCodes: lastDeleteCode !== "" || lastEditCode !== ""
 
   readonly property string label: "paste0"
   readonly property string tooltip: {
@@ -72,6 +78,7 @@ Panel {
 
   function prepare() {
     expiry = Model.normalizeExpiry(setting("expiry", "1week"))
+    burn = Model.boolish(setting("burn", false), false)
     isAlert = false
     if (!creating)
       statusText = ""
@@ -106,18 +113,32 @@ Panel {
     isAlert = false
     statusText = "Creating…"
     lastUrl = ""
+    lastDeleteCode = ""
+    lastEditCode = ""
+    codesOpen = false
     createProc.stdinEnabled = true
-    createProc.command = ["python3", helperPath, apiUrl, expiry, "", "auto"]
+    createProc.command = ["python3", helperPath, apiUrl, expiry, "", "auto", burn ? "1" : "0"]
     createProc.running = true
   }
 
-  function copyLastUrl() {
-    if (!lastUrl)
+  function copyText(value, label) {
+    var s = String(value || "")
+    if (!s)
       return
-    copyProc.command = ["wl-copy", lastUrl]
+    copyProc.command = ["wl-copy", s]
     copyProc.running = true
-    statusText = "Copied"
+    statusText = label || "Copied"
     isAlert = false
+  }
+
+  function copyLastUrl() {
+    copyText(lastUrl, "Copied")
+  }
+
+  function toggleCodes() {
+    if (!hasCodes)
+      return
+    codesOpen = !codesOpen
   }
 
   function applyCreate(raw) {
@@ -126,7 +147,10 @@ Panel {
     pendingBody = ""
     if (parsed.ok) {
       lastUrl = parsed.url
-      statusText = "Created"
+      lastDeleteCode = parsed.deleteCode || ""
+      lastEditCode = parsed.editCode || ""
+      codesOpen = false
+      statusText = burn ? "Burn · created" : "Created"
       isAlert = false
       if (copyUrl)
         copyLastUrl()
@@ -243,6 +267,10 @@ Panel {
         }
         if (map[t])
           root.expiry = map[t]
+        else if (t === "b" || t === "B")
+          root.burn = !root.burn
+        else if (t === "+" || t === "=")
+          root.toggleCodes()
         else if (t === "y" || t === "Y")
           root.copyLastUrl()
         else if (t === "r" || t === "R")
@@ -296,30 +324,62 @@ Panel {
           foreground: root.barForeground
         }
 
-        Row {
+        Item {
           width: parent.width
-          spacing: Style.space(14)
+          height: Math.max(expiryRow.implicitHeight, burnLabel.implicitHeight)
 
-          Repeater {
-            model: Model.expiryOptions()
+          Row {
+            id: expiryRow
+            anchors.left: parent.left
+            anchors.right: burnLabel.left
+            anchors.rightMargin: Style.space(12)
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.space(14)
 
-            Text {
-              required property var modelData
-              text: modelData.label
-              textFormat: Text.PlainText
-              color: root.expiry === modelData.id ? root.barForeground : root.muted
-              font.family: root.bar ? root.bar.fontFamily : Style.font.family
-              font.pixelSize: Style.font.body
-              font.bold: root.expiry === modelData.id
-              Accessible.role: Accessible.Button
-              Accessible.name: "Expires " + modelData.label
+            Repeater {
+              model: Model.expiryOptions()
 
-              MouseArea {
-                anchors.fill: parent
-                anchors.margins: -6
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.expiry = modelData.id
+              Text {
+                required property var modelData
+                text: modelData.label
+                textFormat: Text.PlainText
+                color: root.expiry === modelData.id ? root.barForeground : root.muted
+                font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                font.pixelSize: Style.font.body
+                font.bold: root.expiry === modelData.id
+                Accessible.role: Accessible.Button
+                Accessible.name: "Expires " + modelData.label
+
+                MouseArea {
+                  anchors.fill: parent
+                  anchors.margins: -6
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.expiry = modelData.id
+                }
               }
+            }
+          }
+
+          Text {
+            id: burnLabel
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Burn"
+            textFormat: Text.PlainText
+            color: root.burn ? root.barForeground : root.muted
+            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+            font.pixelSize: Style.font.body
+            font.bold: root.burn
+            Accessible.role: Accessible.Button
+            Accessible.name: root.burn ? "Burn after read on" : "Burn after read off"
+            Accessible.checkable: true
+            Accessible.checked: root.burn
+
+            MouseArea {
+              anchors.fill: parent
+              anchors.margins: -6
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.burn = !root.burn
             }
           }
         }
@@ -374,6 +434,80 @@ Panel {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
             onClicked: root.copyLastUrl()
+          }
+        }
+
+        Item {
+          width: parent.width
+          visible: root.hasCodes
+          height: root.codesOpen
+                 ? Math.max(codesColumn.implicitHeight, plusLabel.implicitHeight)
+                 : plusLabel.implicitHeight
+
+          Column {
+            id: codesColumn
+            width: parent.width - Style.space(28)
+            spacing: Style.space(4)
+            visible: root.codesOpen
+
+            Text {
+              width: parent.width
+              visible: root.lastDeleteCode !== ""
+              text: "delete  " + root.lastDeleteCode
+              textFormat: Text.PlainText
+              wrapMode: Text.WrapAnywhere
+              color: root.muted
+              font.family: root.bar ? root.bar.fontFamily : Style.font.family
+              font.pixelSize: Style.font.caption
+              Accessible.role: Accessible.Button
+              Accessible.name: "Copy delete code"
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.copyText(root.lastDeleteCode, "Delete code copied")
+              }
+            }
+
+            Text {
+              width: parent.width
+              visible: root.lastEditCode !== ""
+              text: "edit  " + root.lastEditCode
+              textFormat: Text.PlainText
+              wrapMode: Text.WrapAnywhere
+              color: root.muted
+              font.family: root.bar ? root.bar.fontFamily : Style.font.family
+              font.pixelSize: Style.font.caption
+              Accessible.role: Accessible.Button
+              Accessible.name: "Copy edit code"
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.copyText(root.lastEditCode, "Edit code copied")
+              }
+            }
+          }
+
+          Text {
+            id: plusLabel
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            text: root.codesOpen ? "−" : "+"
+            textFormat: Text.PlainText
+            color: root.barForeground
+            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+            font.pixelSize: Style.font.body
+            font.bold: true
+            Accessible.role: Accessible.Button
+            Accessible.name: root.codesOpen ? "Hide delete and edit codes" : "Show delete and edit codes"
+
+            MouseArea {
+              anchors.fill: parent
+              anchors.margins: -8
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.toggleCodes()
+            }
           }
         }
       }
